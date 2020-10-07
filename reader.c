@@ -1,23 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: main.c
 // This File: reader.c
-// Other Files: main.c / queue.c / reader.c / munch1.c / munch2.c / writer.c / queue.h / reader.h / munch1.h / munch2.h / writer.h / makefile
-// Semester:         CS 537 Fall 2018
-//
-// Author:           Ethan Lengfeld
-// Email:            elengfeld@wisc.edu
-// CS Login:         lengfeld
-//
-/////////////////////////// OTHER SOURCES OF HELP //////////////////////////////
-//                   fully acknowledge and credit all sources of help,
-//                   other than Instructors and TAs.
-//
-// Persons:          None
-//
-//
-// Online sources:   None
-//
-//
+// This File Description: This is the reader that also sets up the queue struct
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -32,7 +19,7 @@ const int BUFFER_SIZE = 1024;
 // 
 // @param queues 
 // @return queues 
-void *readInStrings(void *queues){
+void *readLines(void *queues){
 	Queue **queue = (Queue **) queues;
 	char c = '\0';
 	int mallocNewLineFlag = 1;
@@ -75,7 +62,7 @@ void *readInStrings(void *queues){
 			mallocNewLineFlag = 1;
 			if(inputString != NULL){
 				if(!ignoreLine){
-					EnqueueString(queue[0], inputString);
+					Enqueue(queue[0], inputString);
 					inputString = NULL;
 				}else{
 					// this line was ignored to free the space
@@ -87,10 +74,10 @@ void *readInStrings(void *queues){
 	}
 	// if there was a string that didn't end with a new line but instead an EOF it wasn't added to the queue
 	if(inputString != NULL && (!ignoreLine)){
-		EnqueueString(queue[0], inputString);
+		Enqueue(queue[0], inputString);
 	}
 
 	// termination string used to communicate to munch1 thread that reader is done
-	EnqueueString(queue[0], TERMINATE);
+	Enqueue(queue[0], TERMINATE);
 	pthread_exit(NULL);
 }

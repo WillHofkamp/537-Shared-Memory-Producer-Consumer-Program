@@ -1,23 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: main.c
 // This File: queue.c
-// Other Files: main.c / queue.c / reader.c / munch1.c / munch2.c / writer.c / queue.h / reader.h / munch1.h / munch2.h / writer.h / makefile
-// Semester:         CS 537 Fall 2018
-//
-// Author:           Ethan Lengfeld
-// Email:            elengfeld@wisc.edu
-// CS Login:         lengfeld
-//
-/////////////////////////// OTHER SOURCES OF HELP //////////////////////////////
-//                   fully acknowledge and credit all sources of help,
-//                   other than Instructors and TAs.
-//
-// Persons:          None
-//
-//
-// Online sources:   None
-//
-//
+// This File Description: This is the queue
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -32,7 +19,7 @@
 // 
 // @param size
 // @stringQueue
-Queue *CreateStringQueue(int size){
+Queue *MakeQueue(int qsize){
 
 	Queue *stringQueue = (Queue *) malloc(sizeof(Queue));
 	if(stringQueue == NULL){
@@ -45,67 +32,67 @@ Queue *CreateStringQueue(int size){
 		free(stringQueue);
 		return NULL;
 	}
-	stringQueue->capacity = size;
-	stringQueue->numElements = 0;
-	stringQueue->headIndex = 0;
-	stringQueue->tailIndex = 0;
-	stringQueue->enqueueCount = 0;
-	stringQueue->dequeueCount = 0;
-	stringQueue->enqueueBlockCount = 0;
-	stringQueue->dequeueBlockCount = 0;
-	sem_init(&stringQueue->enqueueReady, 0, 0);
-	sem_init(&stringQueue->dequeueReady, 0, 10);
+	stringQueue->maxSize = qsize;
+	stringQueue->size = 0;
+	stringQueue->head = 0;
+	stringQueue->tail = 0;
+	stringQueue->enqueues = 0;
+	stringQueue->dequeues = 0;
+	stringQueue->eqBlocks = 0;
+	stringQueue->dqBlocks = 0;
+	sem_init(&stringQueue->eqReady, 0, 0);
+	sem_init(&stringQueue->dqReady, 0, 10);
 	sem_init(&stringQueue->mutex, 0, 1);
 	
 	return stringQueue;
 }
 
 // enqueue strings onto the string as well as update the statistics
-void EnqueueString(Queue *q, char *string){
-	if(q->numElements == q->capacity){
-		q->enqueueBlockCount++;
+void Enqueue(Queue *queue, char *string){
+	if(queue->size == queue->maxSize){
+		queue->eqBlocks++;
 		// BLOCK until dequeue is made!
 	}
-	sem_wait(&q->dequeueReady);
-	sem_wait(&q->mutex);
-	if(q->tailIndex == q->capacity){
-		q->tailIndex = 0;
+	sem_wait(&queue->dqReady);
+	sem_wait(&queue->mutex);
+	if(queue->tail == queue->maxSize){
+		queue->tail = 0;
 	}
-	q->strings[q->tailIndex] = string;
-	q->tailIndex++;
-	q->numElements++;
-	q->enqueueCount++;
-	sem_post(&q->mutex);
+	queue->strings[queue->tail] = string;
+	queue->tail++;
+	queue->size++;
+	queue->enqueues++;
+	sem_post(&queue->mutex);
 	//unlock the blocked dequeue
-	sem_post(&q->enqueueReady);
+	sem_post(&queue->eqReady);
 }
 
 // dequeue strings onto the string as well as update the statistics
-char * DequeueString(Queue *q){
-	if(q->numElements == 0){
-		q->dequeueBlockCount++;
+char * Dequeue(Queue *queue){
+	if(queue->size == 0){
+		queue->dqBlocks++;
 		// BLOCK until enqueue is made!
 	}
-	sem_wait(&q->enqueueReady);
-	sem_wait(&q->mutex);
+	sem_wait(&queue->eqReady);
+	sem_wait(&queue->mutex);
 	// wrap the head around
-	if(q->headIndex == q->capacity){
-		q->headIndex = 0;
+	if(queue->head == queue->maxSize){
+		queue->head = 0;
 	}
-	char *string = q->strings[q->headIndex];
-	q->headIndex++;
-	q->numElements--;
-	q->dequeueCount++;
-	sem_post(&q->mutex);
+	char *string = queue->strings[queue->head];
+	queue->head++;
+	queue->size--;
+	queue->dequeues++;
+	sem_post(&queue->mutex);
 	//unlock the blocked enqueue
-	sem_post(&q->dequeueReady);
+	sem_post(&queue->dqReady);
 	return string;
 }
 
 // print all stats related to the queue
-void PrintQueueStats(Queue *q){
-	fprintf(stderr, "enqueueCount = %d\n", q->enqueueCount);
-	fprintf(stderr, "dequeueCount = %d\n", q->dequeueCount);
-	fprintf(stderr, "enqueueBlockCount = %d\n", q->enqueueBlockCount);
-	fprintf(stderr, "dequeueBlockCount = %d\n", q->dequeueBlockCount);
+void PrintStats(Queue *queue){
+	fprintf(stderr, "enqueues = %d\n", queue->enqueues);
+	fprintf(stderr, "dequeues = %d\n", queue->dequeues);
+	fprintf(stderr, "eqBlocks = %d\n", queue->eqBlocks);
+	fprintf(stderr, "dqBlocks = %d\n", queue->dqBlocks);
 }

@@ -1,23 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: main.c
 // This File: main.c
-// Other Files: main.c / queue.c / reader.c / munch1.c / munch2.c / writer.c / queue.h / reader.h / munch1.h / munch2.h / writer.h / makefile
-// Semester:         CS 537 Fall 2018
-//
-// Author:           Ethan Lengfeld
-// Email:            elengfeld@wisc.edu
-// CS Login:         lengfeld
-//
-/////////////////////////// OTHER SOURCES OF HELP //////////////////////////////
-//                   fully acknowledge and credit all sources of help,
-//                   other than Instructors and TAs.
-//
-// Persons:          None
-//
-//
-// Online sources:   None
-//
-//
+// This File Description: This is the reader that also sets up the queue struct
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -39,17 +26,17 @@ const int QUEUE_SIZE = 10;
 int main(){
 
 	// create each queue
-	Queue *readerToMunch1Queue = CreateStringQueue(QUEUE_SIZE);
+	Queue *readerToMunch1Queue = MakeQueue(QUEUE_SIZE);
 	if (readerToMunch1Queue == NULL){
 		fprintf(stderr, "Error unable to create queue\n");
 		return -1;
 	}
-	Queue *munch1ToMunch2Queue = CreateStringQueue(QUEUE_SIZE);
+	Queue *munch1ToMunch2Queue = MakeQueue(QUEUE_SIZE);
 	if (munch1ToMunch2Queue == NULL){
 		fprintf(stderr, "Error unable to create queue\n");
 		return -1;
 	}
-	Queue *munch2ToWriterQueue = CreateStringQueue(QUEUE_SIZE);
+	Queue *munch2ToWriterQueue = MakeQueue(QUEUE_SIZE);
 	if (munch2ToWriterQueue == NULL){
 		fprintf(stderr, "Error unable to create queue\n");
 		return -1;
@@ -119,8 +106,8 @@ int main(){
 	// destroy the semaphores
 	for(int i = 0; i < QUEUE_SIZE; i++){
 		Queue **queue = (Queue **) queues;
-		sem_destroy(&queue[i]->enqueueReady);
-		sem_destroy(&queue[i]->dequeueReady);
+		sem_destroy(&queue[i]->eqReady);
+		sem_destroy(&queue[i]->dqReady);
 		sem_destroy(&queue[i]->mutex);
 	}
 }

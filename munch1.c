@@ -32,7 +32,7 @@
 // @param queues
 // @returns queues
 //
-void *munch1Strings(void *queues){
+void *munch1(void *queues){
 	Queue **queue = (Queue **) queues;
 	char *string = NULL;
 	char asterisk = '*';
@@ -43,7 +43,7 @@ void *munch1Strings(void *queues){
 	// run the thread until we get the the termination key
 	while(1){
 		// prevents the thread from busy waiting
-		string = DequeueString(queue[0]);
+		string = Dequeue(queue[0]);
 		
 		// test if we've reached the end of the queue
 		if((strcmp(string, TERMINATE)) == 0){
@@ -61,9 +61,9 @@ void *munch1Strings(void *queues){
 			}
 		}
 		// add the munipulated string onto next queue
-		EnqueueString(queue[1], string);
+		Enqueue(queue[1], string);
 	}
 	// termination string used to communicate to munch2 thread that munch1 is done
-	EnqueueString(queue[1], TERMINATE);
+	Enqueue(queue[1], TERMINATE);
 	pthread_exit(NULL);
 }

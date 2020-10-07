@@ -1,23 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: main.c
-// This File: munch2.c
-// Other Files: main.c / queue.c / reader.c / munch1.c / munch2.c / writer.c / queue.h / reader.h / munch1.h / munch2.h / writer.h / makefile
-// Semester:         CS 537 Fall 2018
-//
-// Author:           Ethan Lengfeld
-// Email:            elengfeld@wisc.edu
-// CS Login:         lengfeld
-//
-/////////////////////////// OTHER SOURCES OF HELP //////////////////////////////
-//                   fully acknowledge and credit all sources of help,
-//                   other than Instructors and TAs.
-//
-// Persons:          None
-//
-//
-// Online sources:   None
-//
-//
+// This File: munch.c
+// This File Description: This is the reader that also sets up the queue struct
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -33,7 +20,7 @@
 // @param queues
 // @return queues
 //
-void *munch2Strings(void *queues){
+void *munch2(void *queues){
 	Queue **queue = (Queue **) queues;
 	char *string = NULL;
 	int charIndex = 0;
@@ -42,7 +29,7 @@ void *munch2Strings(void *queues){
 	// run the thread until we get the the termination key
 	while(1){
 		// prevents the thread from busy waiting
-		string = DequeueString(queue[1]);
+		string = Dequeue(queue[1]);
 		
 		// test if we've reached the end of the queue
 		if((strcmp(string, TERMINATE)) == 0){
@@ -57,9 +44,9 @@ void *munch2Strings(void *queues){
 			}
 			charIndex++;
 		}
-		EnqueueString(queue[2], string);
+		Enqueue(queue[2], string);
 	}
 	// termination string used to communicate to writer thread that munch2 is done
-	EnqueueString(queue[2], TERMINATE);
+	Enqueue(queue[2], TERMINATE);
 	pthread_exit(NULL);
 }

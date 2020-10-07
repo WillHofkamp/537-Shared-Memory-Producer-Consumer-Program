@@ -23,6 +23,6 @@
 #ifndef MUNCH1
 #define MUNCH1
 
-void *munch1Strings(void *queues);
+void *munch1(void *queues);
 
 #endif
