@@ -13,11 +13,7 @@
 #include <time.h>
 #include "queue.h"
 
-// This method creates a queue to the size
-// specification passed in, and initializes
-// the statistics that will be tracked 
-// thoughout the queue's use.
-// 
+// Class to create a Queue of the given size
 // @param size
 // @stringQueue
 Queue *CreateStringQueue(int qsize){
@@ -58,7 +54,6 @@ void EnqueueString(Queue *q, char *string){
     
     if(q->numElems == q->capacity){
 		q->enqueueBlockCount++;
-		// BLOCK until dequeue is made!
 	}
 	sem_wait(&q->dqReady);
 	sem_wait(&q->mutex);
@@ -91,7 +86,8 @@ char * DequeueString(Queue *q){
 	}
 	sem_wait(&q->eqReady);
 	sem_wait(&q->mutex);
-	// wrap the head around
+	
+    // wrap the head around
 	if(q->head == q->capacity){
 		q->head = 0;
 	}
