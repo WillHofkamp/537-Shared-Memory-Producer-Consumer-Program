@@ -1,7 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: thread.c
 // This File: thread.c
-// This File Description: This is the reader that also sets up the queue struct
+// This File Description: This is thread implementation that has all the methods
+//						  for the different types of threads in this project.
+//						  The read method reads in lines, munch1 converts spaces
+//						  to stars, munch2 converts all letters to uppercase, and
+//						  write writes all the lines to the output file
 // Author:           William Hofkamp, Pranet Gowni
 // Email:            hofkamp@wisc.edu, gowni@wisc.edu
 // CS Login:         hofkamp, pranet
@@ -16,9 +20,10 @@
 #include <errno.h>
 #include "thread.h"
 
-const int BUFFER_SIZE = 1024;
+const int BUFFER = 1024;
+const char* TERMINATE = "EOFNULLchar";
 
-//Reader thread reads a line from stdio and enqueues it into Q1 for Munch1 to access
+//reads a line from the file input and enqueues it into Q1
 void *Read(void *queues)
 {
     Queue **queue = (Queue **) queues;
@@ -27,38 +32,36 @@ void *Read(void *queues)
 	int ignoreLine = 0;
 	int charIndex = 0;
 	char *inputString = NULL;
-	char* TERMINATE = "EOFNULLchar";
 	
-	// iterates through stdin until file end is reached
+	//while the file end is not reached yet
 	while( (c = getc(stdin)) != EOF){
 
-		// allocates space for new char* for each new line
+		//allocate space for each line
 		if(newLineFlag){
-			inputString = (char *) calloc(BUFFER_SIZE, sizeof(char));
+			inputString = (char *) calloc(BUFFER, sizeof(char));
 			if(inputString == NULL){
 				printf("Error: Unable malloc space for input string.\n");
 				return NULL;
 			}
-			// reset both flags
+			//reset flags after line so each line is checked
 			newLineFlag = 0;
 			ignoreLine = 0;
 		}
 
-		// as long as the char isn't a return (new line), continue
 		if(c != '\n'){
 			if(!ignoreLine){
-				// test that the length so far isn't longer than buffer.
-				if(charIndex < BUFFER_SIZE){
+				//test that the current length is smaller than buffer
+				if(charIndex < BUFFER){
 					inputString[charIndex] = c;
 					charIndex++;
 				}else{
 					fprintf(stderr, "Error: Input string is larger than buffer.\n");
-					// set flag telling program to ignore the rest of this line
+					//since the line is too big, ignore the rest of it
 					ignoreLine = 1;
 				}
 			}
-		// adds string to queue
 		}else{
+			//add string to queue if char is newline
 			charIndex = 0;
 			newLineFlag = 1;
 			if(inputString != NULL){
@@ -66,110 +69,110 @@ void *Read(void *queues)
 					EnqueueString(queue[0], inputString);
 					inputString = NULL;
 				}else{
-					// this line was ignored to free the space
+					//if the line was ignored, free it instead of enqueuing it
 					free(inputString);
 					inputString = NULL;
 				}
 			}
 		}
 	}
-	// if there was a string that didn't end with a new line but instead an EOF it wasn't added to the queue
+	//check if string wasn't added to queue that has EOF instead of \n for the last char
 	if(inputString != NULL && (!ignoreLine)){
 		EnqueueString(queue[0], inputString);
 	}
 
-	// termination string used to communicate to munch1 thread that reader is done
+	//termination string signals that Read is done
 	EnqueueString(queue[0], TERMINATE);
 	pthread_exit(NULL);
 }
 
-//Munch1 DequeueStrings string from Q1, processes it and EnqueueStrings the string to Q2
+//dequeues the strings from Q1, processes them, and then enqueues the strings to be used in Q2
 void *Munch1(void *queues)
 {
     Queue **queue = (Queue **) queues;
-	char *string = NULL;
-	char asterisk = '*';
-	char space = ' ';
+	char *inputString = NULL;
+	char star = '*';
+	char empty = ' ';
 	char *ptr = NULL;
-	char* TERMINATE = "EOFNULLchar";
 	
-	// run the thread until we get the the termination key
+	// run the thread until the end of the file is reached
 	while(1){
-		// prevents the thread from busy waiting
-		string = DequeueString(queue[0]);
+		//prevent busy waiting
+		inputString = DequeueString(queue[0]);
 		
-		// test if we've reached the end of the queue
-		if((strcmp(string, TERMINATE)) == 0){
+		//test if we've reached the end of the queue
+		if((strcmp(inputString, TERMINATE)) == 0){
 			break;
 		}
-		
-		// run until no more spaces in string, then break out of this loop
+
+		//iterate over each char of string
 		while (1){
-			ptr = strchr(string, space);
-			// if ptr is NULL than there are no more spaces in string
+			ptr = strchr(inputString, empty);
 			if(ptr == NULL){
+				//reached end of string
 				break;
 			}else{
-				*(ptr) = asterisk;
+				*(ptr) = star;
 			}
 		}
-		// add the munipulated string onto next queue
-		EnqueueString(queue[1], string);
+		//enqueue to the next queue
+		EnqueueString(queue[1], inputString);
 	}
-	// termination string used to communicate to munch2 thread that munch1 is done
+	//termination string signals that Munch1 is done
 	EnqueueString(queue[1], TERMINATE);
 	pthread_exit(NULL);
 }
 
-//Munch2 DequeueStrings string from Q2, processes it and EnqueueStrings the string to Q3
+//dequeues strings from Q2, processes them and enqueues them to be used in Q3
 void *Munch2(void *queues)
 {
     Queue **queue = (Queue **) queues;
-	char *string = NULL;
+	char *inputString = NULL;
 	int charIndex = 0;
-	char* TERMINATE = "EOFNULLchar";
 	
-	// run the thread until we get the the termination key
+	
+	// run the thread until the end of the file is reached
 	while(1){
-		// prevents the thread from busy waiting
-		string = DequeueString(queue[1]);
+		//prevent waiting
+		inputString = DequeueString(queue[1]);
 		
-		// test if we've reached the end of the queue
-		if((strcmp(string, TERMINATE)) == 0){
+		//test if we've reached the end of the queue
+		if((strcmp(inputString, TERMINATE)) == 0){
 			break;
 		}
 
 		charIndex = 0;
-		// loop through the entire string and change the lower case chars to UPPER
-		while(string[charIndex] != '\0'){
-			if(islower(string[charIndex])) {
-				string[charIndex] = toupper(string[charIndex]);
+		//iterate over each char of string
+		while(inputString[charIndex] != '\0'){
+			if(islower(inputString[charIndex])) {
+				//raise any lower case chars to upper case
+				inputString[charIndex] = toupper(inputString[charIndex]);
 			}
 			charIndex++;
 		}
-		EnqueueString(queue[2], string);
+		//enqueue to the next queue
+		EnqueueString(queue[2], inputString);
 	}
-	// termination string used to communicate to writer thread that munch2 is done
+	//termination string signals that Munch2 is done
 	EnqueueString(queue[2], TERMINATE);
 	pthread_exit(NULL);
 }
 
+//dequeues the strings from Munch2 and then outputs them to the output file
 void *Write(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char *line = NULL;
-	char* TERMINATE = "EOFNULLchar";
 	
-	// run the thread until we get the the termination key
+	// run the thread until the entire Munch2 queue is dequeued
 	while(1){
-		// prevents the thread from busy waiting
 		line = DequeueString(queue[2]);
 		
-		// test if we've reached the end of the queue
+		//test if we've reached the end of the queue
 		if((strcmp(line, TERMINATE)) == 0){
 			break;
 		}
-		// print the line to standard output
+		// print line in output file
 		printf("%s\n", line);
 	}
 	pthread_exit(NULL);

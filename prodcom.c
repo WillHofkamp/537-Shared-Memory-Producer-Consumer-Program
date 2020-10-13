@@ -1,7 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Main File: main.c
-// This File: main.c
-// This File Description: This is the reader that also sets up the queue struct
+// Main File: prodcom.c
+// This File: prodcom.c
+// This File Description: This is the main file that creates the queues and the 
+//                        pthreads and sends them through the queues
 // Author:           William Hofkamp, Pranet Gowni
 // Email:            hofkamp@wisc.edu, gowni@wisc.edu
 // CS Login:         hofkamp, pranet
@@ -15,18 +16,18 @@
 
 const int QUEUE_SIZE = 10;
 
-// Method to create the queues and pthreads to be used
-// by the other functions
-// @returns N/A
+//This is the main method that creates the queues for each thread
+//and then joins them all together. Once the process is done with the write
+//thread, it is 
 int main(){
 
-    // create the threads
-	pthread_t readerThread;
+    // create threads
+	pthread_t readThread;
 	pthread_t munch1Thread;
 	pthread_t munch2Thread;
-	pthread_t writerThread;
+	pthread_t writeThread;
 
-	// create each queue
+	// create queues and create an array of them all
 	Queue *readerQueue = CreateStringQueue(QUEUE_SIZE);
 	if (readerQueue == NULL){
 		fprintf(stderr, "Error: Couldn't create queue\n");
@@ -48,48 +49,57 @@ int main(){
 	queues[1] = munch1Queue;
 	queues[2] = munch2Queue;
 
-	if(pthread_create(&readerThread, NULL, read, queues)){
+	//create threads
+	int createRead = pthread_create(&readThread, NULL, Read, queues); 
+	if(createRead != 0){
 		fprintf(stderr, "Error: Couldn't create thread\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch1Thread, NULL, munch1, queues)){
+	int createMunch1 = pthread_create(&munch1Thread, NULL, Munch1, queues); 
+	if(createMunch1 != 0){
 		fprintf(stderr, "Error: Couldn't create thread\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch2Thread, NULL, munch2, queues)){
+	int createMunch2 = pthread_create(&munch2Thread, NULL, Munch2, queues); 
+	if(createMunch2 != 0){
 		fprintf(stderr, "Error: Couldn't create thread\n");
 		return -1;
 	}
 	
-	if(pthread_create(&writerThread, NULL, write, queues)){
+	int createWrite = pthread_create(&writeThread, NULL, Write, queues); 
+	if(createWrite != 0){
 		fprintf(stderr, "Error: Couldn't create thread\n");
 		return -1;
 	}
 	
 	// joining the threads
-	if(pthread_join(readerThread, NULL)) {
-		fprintf(stderr, "Error: Couldn't join readerThread.");
+	int joinRead = pthread_join(readThread, NULL); 
+	if(joinRead != 0) {
+		fprintf(stderr, "Error: Couldn't join readThread.");
 		return -1;	
-		}
+	}
 	
-	if(pthread_join(munch1Thread, NULL)) {
+	int joinMunch1 = pthread_join(munch1Thread, NULL); 
+	if(joinMunch1 != 0) {
 		fprintf(stderr, "Error: Couldn't join munch1Thread.");
 		return -1;	
-		}
+	}
 	
-	if(pthread_join(munch2Thread, NULL)) {
+	int joinMunch2 = pthread_join(munch2Thread, NULL); 
+	if(joinMunch2 != 0) {
 		fprintf(stderr, "Error: Couldn't join munch2Thread.");
 		return -1;	
-		}
+	}
 	
-	if(pthread_join(writerThread, NULL)) {
+	int joinWrite = pthread_join(writeThread, NULL); 
+	if(joinWrite != 0) {
 		fprintf(stderr, "Error: Couldn't join writerThread.");
 		return -1;
 	}
 
-	// Printing queue statistics
+	// Printing stats
 	fprintf(stderr, "\nQueue 1(Reader to Munch1) Stats\n");
 	PrintQueueStats(queues[0]);
 	fprintf(stderr, "\nQueue 2(Munch1 to Munch2) Stats\n");

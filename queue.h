@@ -1,7 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Main File: main.c
 // This File: queue.h
-// This File Description: This is the queue interface that also sets up the queue struct
+// This File Description: This is the queue interface that also sets up the 
+//						  queue struct which is used to implement a queue and 
+//						  keep track of queue stats
 // Author:           William Hofkamp, Pranet Gowni
 // Email:            hofkamp@wisc.edu, gowni@wisc.edu
 // CS Login:         hofkamp, pranet
@@ -18,8 +20,8 @@ typedef struct{
 	int tail;
 	int enqueueCount;
 	int dequeueCount;
-	int enqueueTime;
-	int dequeueTime;
+	double enqueueTime;
+	double dequeueTime;
 	sem_t eqReady;
 	sem_t dqReady;
 	sem_t mutex;
