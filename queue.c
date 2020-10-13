@@ -19,7 +19,7 @@
 // 
 // @param size
 // @stringQueue
-Queue *MakeQueue(int qsize){
+Queue *CreateStringQueue(int qsize){
 
 	Queue *stringQueue = (Queue *) malloc(sizeof(Queue));
 	if(stringQueue == NULL){
@@ -32,14 +32,14 @@ Queue *MakeQueue(int qsize){
 		free(stringQueue);
 		return NULL;
 	}
-	stringQueue->maxSize = qsize;
-	stringQueue->size = 0;
+	stringQueue->capacity = qsize;
+	stringQueue->numElems = 0;
 	stringQueue->head = 0;
 	stringQueue->tail = 0;
-	stringQueue->enqueues = 0;
-	stringQueue->dequeues = 0;
-	stringQueue->eqBlocks = 0;
-	stringQueue->dqBlocks = 0;
+	stringQueue->enqueueCount = 0;
+	stringQueue->dequeueCount = 0;
+	stringQueue->enqueueTime = 0;
+	stringQueue->dequeueTime = 0;
 	sem_init(&stringQueue->eqReady, 0, 0);
 	sem_init(&stringQueue->dqReady, 0, 10);
 	sem_init(&stringQueue->mutex, 0, 1);
@@ -48,41 +48,41 @@ Queue *MakeQueue(int qsize){
 }
 
 // enqueue strings onto the string as well as update the statistics
-void Enqueue(Queue *queue, char *string){
-	if(queue->size == queue->maxSize){
-		queue->eqBlocks++;
+void EnqueueString(Queue *queue, char *string){
+	if(queue->numElems == queue->capacity){
+		queue->enqueueTime++;
 		// BLOCK until dequeue is made!
 	}
 	sem_wait(&queue->dqReady);
 	sem_wait(&queue->mutex);
-	if(queue->tail == queue->maxSize){
+	if(queue->tail == queue->capacity){
 		queue->tail = 0;
 	}
 	queue->strings[queue->tail] = string;
 	queue->tail++;
-	queue->size++;
-	queue->enqueues++;
+	queue->numElems++;
+	queue->enqueueCount++;
 	sem_post(&queue->mutex);
 	//unlock the blocked dequeue
 	sem_post(&queue->eqReady);
 }
 
 // dequeue strings onto the string as well as update the statistics
-char * Dequeue(Queue *queue){
-	if(queue->size == 0){
-		queue->dqBlocks++;
+char * DequeueString(Queue *queue){
+	if(queue->numElems == 0){
+		queue->dequeueTime++;
 		// BLOCK until enqueue is made!
 	}
 	sem_wait(&queue->eqReady);
 	sem_wait(&queue->mutex);
 	// wrap the head around
-	if(queue->head == queue->maxSize){
+	if(queue->head == queue->capacity){
 		queue->head = 0;
 	}
 	char *string = queue->strings[queue->head];
 	queue->head++;
 	queue->size--;
-	queue->dequeues++;
+	queue->dequeueCount++;
 	sem_post(&queue->mutex);
 	//unlock the blocked enqueue
 	sem_post(&queue->dqReady);
@@ -90,9 +90,9 @@ char * Dequeue(Queue *queue){
 }
 
 // print all stats related to the queue
-void PrintStats(Queue *queue){
-	fprintf(stderr, "enqueues = %d\n", queue->enqueues);
-	fprintf(stderr, "dequeues = %d\n", queue->dequeues);
-	fprintf(stderr, "eqBlocks = %d\n", queue->eqBlocks);
-	fprintf(stderr, "dqBlocks = %d\n", queue->dqBlocks);
+void PrintQueueStats(Queue *queue){
+	fprintf(stderr, "enqueueCount = %d\n", queue->enqueueCount);
+	fprintf(stderr, "dequeueCount = %d\n", queue->dequeueCount);
+	fprintf(stderr, "enqueueTime = %d\n", queue->enqueueTime);
+	fprintf(stderr, "dequeueTime = %d\n", queue->dequeueTime);
 }

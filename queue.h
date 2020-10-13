@@ -12,25 +12,25 @@
 
 typedef struct{
 	char **strings;
-	int maxSize;
-	int size;
+	int numElems;
+	int capacity;
 	int head;
 	int tail;
-	int enqueues;
-	int dequeues;
-	int eqBlocks;
-	int dqBlocks;
+	int enqueueCount;
+	int dequeueCount;
+	int enqueueTime;
+	int dequeueTime;
 	sem_t eqReady;
 	sem_t dqReady;
 	sem_t mutex;
 }Queue;	
 
-Queue *MakeQueue(int qsize);
+Queue *CreateStringQueue(int qsize);
 
-void Enqueue(Queue *q, char *string);
+void EnqueueString(Queue *q, char *string);
 
-char * Dequeue(Queue *q);
+char * DequeueString(Queue *q);
 
-void PrintStats(Queue *q);
+void PrintQueueStats(Queue *q);
 
 #endif
