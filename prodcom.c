@@ -17,7 +17,6 @@ const int QUEUE_SIZE = 10;
 
 // Method to create the queues and pthreads to be used
 // by the other functions
-// @returns N/A
 int main(){
 
     // create the threads
