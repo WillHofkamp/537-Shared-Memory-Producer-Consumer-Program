@@ -20,13 +20,13 @@ Queue *CreateStringQueue(int qsize){
 
 	Queue *queue = (Queue *) malloc(sizeof(Queue));
 	if(queue == NULL){
-		fprintf(stderr, "Error unable to malloc queue\n");
+		fprintf(stderr, "Error: unable to malloc queue\n");
 		return NULL;
 	}
 
 	queue->strings = (char**) malloc(sizeof(char*) * size);
 	if(queue->strings == NULL){
-		fprintf(stderr, "Error unable to malloc queue\n");
+		fprintf(stderr, "Error: unable to malloc queue\n");
 		free(queue);
 		return NULL;
 	}
@@ -47,63 +47,63 @@ Queue *CreateStringQueue(int qsize){
 
 // Dequeue a string into the respective queue
 void EnqueueString(Queue *q, char *string){
-	time_t timeStart;
-	time_t timeEnd;
-	time_t timeTaken;
+	time_t timeStart; // Time at the start
+	time_t timeEnd; // Time at the end
+	time_t timeTaken; // Difference of the times
 	struct timeval time1;
 	struct timeval time2;
+
 	gettimeofday(&time, NULL);
 	timeStart = time.tv_sec;
     
-    // if(q->numElems == q->capacity){
-	// 	q->enqueueBlockCount++;
-	// }
-	sem_wait(&q->dqReady);
+	//Wait until there is space in queue
+    sem_wait(&q->dqReady);
 	sem_wait(&q->mutex);
-	if(q->tail == q->capacity){
+	
+    if(q->tail == q->capacity){
 		q->tail = 0;
 	}
 	q->strings[q->tail] = string;
 	q->tail++;
 	q->numElems++;
 	q->enqueueCount++;
-	sem_post(&q->mutex);
-	//unlock the blocked dequeue
+	
+    sem_post(&q->mutex);
+	//Signal to unblock the dequeue
 	sem_post(&q->eqReady);
 
     gettimeofday(&time, NULL);
 	timeEnd = time.tv_sec;
 	timeTaken += timeEnd-timeStart;
-	q->enqueueTime = timeTaken;
+	q->enqueueTime = timeTaken; // Store time taken in queue
 }
 
 // Dequeue a string into the respective queue
 char * DequeueString(Queue *q){
-	time_t timeStart;
-	time_t timeEnd;
-	time_t timeTaken;
+	time_t timeStart; // Time at the start
+	time_t timeEnd; // Time at the end
+	time_t timeTaken; // Difference of the times
 	struct timeval time1;
 	struct timeval time2;
+
 	gettimeofday(&time, NULL);
 	timeStart = time.tv_sec;
 
-    if(q->numElems == 0){
-		q->dequeueTime++;
-		// BLOCK until enqueue is made!
-	}
+    // Wait until there is a string to dequeue
 	sem_wait(&q->eqReady);
 	sem_wait(&q->mutex);
 	
-    // wrap the head around
+    // wrapping around
 	if(q->head == q->capacity){
 		q->head = 0;
 	}
-	char *string = q->strings[q->head];
+    char *string = q->strings[q->head];
 	q->head++;
 	q->size--;
 	q->dequeueCount++;
-	sem_post(&q->mutex);
-	//unlock the blocked enqueue
+	
+    sem_post(&q->mutex);
+	//Signal to unblock the enqueue
 	sem_post(&q->dqReady);
     
     
