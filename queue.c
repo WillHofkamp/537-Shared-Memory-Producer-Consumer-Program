@@ -49,7 +49,12 @@ Queue *CreateStringQueue(int qsize){
 
 // enqueue strings onto the string as well as update the statistics
 void EnqueueString(Queue *queue, char *string){
-	if(queue->numElems == queue->capacity){
+	clock_t timeStart;
+	clock_t timeEnd;
+	clock_t timeTaken;
+	timeStart = clock()
+    
+    if(queue->numElems == queue->capacity){
 		queue->enqueueTime++;
 		// BLOCK until dequeue is made!
 	}
@@ -65,11 +70,20 @@ void EnqueueString(Queue *queue, char *string){
 	sem_post(&queue->mutex);
 	//unlock the blocked dequeue
 	sem_post(&queue->eqReady);
+
+    timeEnd = clock();
+	timeTaken = timeEnd-timeStart;
+	q->dequeueTime = double(timeTaken)/CLOCKS_PER_SEC
 }
 
 // dequeue strings onto the string as well as update the statistics
 char * DequeueString(Queue *queue){
-	if(queue->numElems == 0){
+	clock_t timeStart;
+	clock_t timeEnd;
+	clock_t timeTaken;
+	timeStart = clock()
+
+    if(queue->numElems == 0){
 		queue->dequeueTime++;
 		// BLOCK until enqueue is made!
 	}
@@ -86,6 +100,10 @@ char * DequeueString(Queue *queue){
 	sem_post(&queue->mutex);
 	//unlock the blocked enqueue
 	sem_post(&queue->dqReady);
+    
+    timeEnd = clock();
+	timeTaken = timeEnd-timeStart;
+	q->dequeueTime = double(timeTaken)/CLOCKS_PER_SEC
 	return string;
 }
 
