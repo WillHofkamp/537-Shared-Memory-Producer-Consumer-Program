@@ -16,17 +16,14 @@
 #include <errno.h>
 #include "thread.h"
 
-extern const int MAX_LINE_LEN;
-extern const int QUEUE_SIZE;
-
 const int BUFFER_SIZE = 1024;
 
 //Reader thread reads a line from stdio and enqueues it into Q1 for Munch1 to access
-void *Read(void *out_queue)
+void *Read(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char c = '\0';
-	int mallocNewLineFlag = 1;
+	int newLineFlag = 1;
 	int ignoreLine = 0;
 	int charIndex = 0;
 	char *inputString = NULL;
@@ -36,14 +33,14 @@ void *Read(void *out_queue)
 	while( (c = getc(stdin)) != EOF){
 
 		// allocates space for new char* for each new line
-		if(mallocNewLineFlag){
+		if(newLineFlag){
 			inputString = (char *) calloc(BUFFER_SIZE, sizeof(char));
 			if(inputString == NULL){
 				printf("Error: Unable malloc space for input string.\n");
 				return NULL;
 			}
 			// reset both flags
-			mallocNewLineFlag = 0;
+			newLineFlag = 0;
 			ignoreLine = 0;
 		}
 
@@ -63,7 +60,7 @@ void *Read(void *out_queue)
 		// adds string to queue
 		}else{
 			charIndex = 0;
-			mallocNewLineFlag = 1;
+			newLineFlag = 1;
 			if(inputString != NULL){
 				if(!ignoreLine){
 					EnqueueString(queue[0], inputString);
@@ -157,7 +154,7 @@ void *Munch2(void *queues)
 	pthread_exit(NULL);
 }
 
-void *Write(void *in_queue)
+void *Write(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char *line = NULL;

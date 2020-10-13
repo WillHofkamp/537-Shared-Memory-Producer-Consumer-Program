@@ -24,7 +24,7 @@ Queue *CreateStringQueue(int qsize){
 		return NULL;
 	}
 
-	queue->strings = (char**) malloc(sizeof(char*) * size);
+	queue->strings = (char**) malloc(sizeof(char*) * qsize);
 	if(queue->strings == NULL){
 		fprintf(stderr, "Error unable to malloc queue\n");
 		free(queue);
@@ -51,10 +51,7 @@ void EnqueueString(Queue *q, char *string){
 	clock_t timeEnd;
 	clock_t timeTaken;
 	timeStart = clock();
-    
-    if(q->numElems == q->capacity){
-		q->enqueueBlockCount++;
-	}
+
 	sem_wait(&q->dqReady);
 	sem_wait(&q->mutex);
 	if(q->tail == q->capacity){
@@ -70,7 +67,7 @@ void EnqueueString(Queue *q, char *string){
 
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
-	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC
+	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC;
 }
 
 // Dequeue a string into the respective queue
@@ -80,10 +77,6 @@ char * DequeueString(Queue *q){
 	clock_t timeTaken;
 	timeStart = clock();
 
-    if(q->numElems == 0){
-		q->dequeueTime++;
-		// BLOCK until enqueue is made!
-	}
 	sem_wait(&q->eqReady);
 	sem_wait(&q->mutex);
 	
@@ -93,7 +86,7 @@ char * DequeueString(Queue *q){
 	}
 	char *string = q->strings[q->head];
 	q->head++;
-	q->size--;
+	q->numElems--;
 	q->dequeueCount++;
 	sem_post(&q->mutex);
 	//unlock the blocked enqueue
@@ -101,11 +94,11 @@ char * DequeueString(Queue *q){
     
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
-	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC
+	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC;
 	return string;
 }
 
-// Printing queue stats
+// Print queue stats that were kept track of
 void PrintQueueStats(Queue *q){
 	fprintf(stderr, "enqueueCount = %d\n", q->enqueueCount);
 	fprintf(stderr, "dequeueCount = %d\n", q->dequeueCount);

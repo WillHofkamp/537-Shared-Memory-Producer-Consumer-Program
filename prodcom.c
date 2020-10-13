@@ -8,8 +8,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <errno.h>
 #include "queue.h"
 #include "thread.h"
 
@@ -45,54 +50,62 @@ int main(){
 	queues[2] = munch2ToWriterQueue;
 	
 	// create the threads
-	pthread_t readerThread;
+	pthread_t readThread;
 	pthread_t munch1Thread;
 	pthread_t munch2Thread;
-	pthread_t writerThread;
+	pthread_t writeThread;
 	
 	// creates the thread for each module
-	if(pthread_create(&readerThread, NULL, readInStrings, queues)){
+	int createRead = pthread_create(&readThread, NULL, Read, queues);
+	if(createRead != 0){
 		fprintf(stderr, "Error creating Reader thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch1Thread, NULL, munch1Strings, queues)){
+	int createMunch1 = pthread_create(&munch1Thread, NULL, Munch1, queues);
+	if(createMunch1 != 0){
 		fprintf(stderr, "Error creating Munch1 thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch2Thread, NULL, munch2Strings, queues)){
+	int createMunch2 = pthread_create(&munch2Thread, NULL, Munch2, queues);
+	if(createMunch2 != 0){
 		fprintf(stderr, "Error creating Munch2 thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&writerThread, NULL, writeOutStrings, queues)){
+	int createWrite = pthread_create(&writeThread, NULL, Write, queues);
+	if(createWrite != 0){
 		fprintf(stderr, "Error creating Writer thread.\n");
 		return -1;
 	}
 	
 	// joins all of the threads
-	if(pthread_join(readerThread, NULL)) {
-		fprintf(stderr, "Error: couldn't join readerThread.");
+	int joinRead = pthread_join(readThread, NULL);
+	if(joinRead != 0) {
+		fprintf(stderr, "Error: couldn't join readThread.");
 		return -1;	
 		}
 	
-	if(pthread_join(munch1Thread, NULL)) {
+	int joinMunch1 = pthread_join(munch1Thread, NULL);
+	if(joinMunch1 != 0) {
 		fprintf(stderr, "Error: couldn't join munch1Thread.");
 		return -1;	
 		}
 	
-	if(pthread_join(munch2Thread, NULL)) {
+	int joinMunch2 = pthread_join(munch2Thread, NULL);
+	if(joinMunch2 != 0) {
 		fprintf(stderr, "Error: couldn't join munch2Thread.");
 		return -1;	
 		}
 	
-	if(pthread_join(writerThread, NULL)) {
-		fprintf(stderr, "Error: couldn't join writerThread.");
+	int joinWrite = pthread_join(writeThread, NULL);
+	if(joinWrite != 0) {
+		fprintf(stderr, "Error: couldn't join writeThread.");
 		return -1;
 	}
 
-	// TEST QUEUE
+	// stats of each queue
 	fprintf(stderr, "\nQUEUE 1 STATS\n");
 	PrintQueueStats(queues[0]);
 	fprintf(stderr, "\nQUEUE 2 STATS\n");

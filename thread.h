@@ -10,27 +10,14 @@
 
 //This structure is used to pass the Queues as arguments to the threads
 #ifndef THREAD_SERVICE
-#define THREAD_SERVICE 
-typedef struct {
-    Queue *input;
-    Queue *output;
-} threadDto;
+#define THREAD_SERVICE
 
-//This structure is used for returning a line from stdio
-//It also checks whether eof has been encountered or
-//if the line has exceeded the buffer size.
-typedef struct {
-    char *read_str;
-    int has_eof;
-    int buff_size_exceeding;
-} read_line_val;
-
-void *Read(void *out_queue);
+void *Read(void *queues);
 
 void *Munch1(void *queues);
 
 void *Munch2(void *queues);
 
-void *Write(void *in_queue);
+void *Write(void *queues);
 
 #endif

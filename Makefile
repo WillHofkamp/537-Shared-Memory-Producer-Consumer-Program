@@ -8,13 +8,13 @@
 #
 CC = gcc
 WARNING_FLAGS = -Wall -Wextra
-EXE = prodcomm
+EXE = prodcom
 SCAN_BUILD_DIR = scan-build-out
 
-all: prodcom.o thread.o queue.o
-	$(CC) -o $(EXE) prodcom.o thread.o queue.o -lpthread
-prodcom.o: prodcom.c queue.h thread.h
-	$(CC) $(WARNING_FLAGS) -c prodcom.c -lpthread
+$(EXE): prodcom.o thread.o queue.o
+	$(CC) $(WARNING_FLAGS) -o $(EXE) prodcom.o thread.o queue.o -pthread
+prodcom.o: prodcom.c thread.h queue.h
+	$(CC) $(WARNING_FLAGS) -c prodcom.c
 thread.o: thread.c thread.h queue.h
 	$(CC) $(WARNING_FLAGS) -c thread.c
 quote.o: queue.c queue.h
