@@ -12,6 +12,7 @@
 #define QUEUE
 #include <semaphore.h>
 
+//Defining the queue elements
 typedef struct{
 	char **strings;
 	int numElems;
@@ -27,6 +28,7 @@ typedef struct{
 	sem_t mutex;
 }Queue;	
 
+// Defining the functions for creating a queue and adding and removing data from it.
 Queue *CreateStringQueue(int qsize);
 
 void EnqueueString(Queue *q, char *string);

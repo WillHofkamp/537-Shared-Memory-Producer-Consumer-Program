@@ -22,7 +22,7 @@ Queue *CreateStringQueue(int qsize){
 	//malloc a new queue
 	Queue *queue = (Queue *) malloc(sizeof(Queue));
 	if(queue == NULL){
-		fprintf(stderr, "Error unable to malloc queue\n");
+		fprintf(stderr, "Error: unable to malloc queue\n");
 		return NULL;
 	}
 
@@ -30,7 +30,7 @@ Queue *CreateStringQueue(int qsize){
 	//on the qsize parameter
 	queue->strings = (char**) malloc(sizeof(char*) * qsize);
 	if(queue->strings == NULL){
-		fprintf(stderr, "Error unable to malloc queue\n");
+		fprintf(stderr, "Error: unable to malloc queue\n");
 		free(queue);
 		return NULL;
 	}
