@@ -75,7 +75,7 @@ void EnqueueString(Queue *q, char *string){
 
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
-	q->dequeueTime = double(timeTaken)/CLOCKS_PER_SEC
+	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC
 }
 
 // Dequeue a string into the respective queue
@@ -105,7 +105,7 @@ char * DequeueString(Queue *q){
     
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
-	q->dequeueTime = double(timeTaken)/CLOCKS_PER_SEC
+	q->dequeueTime = (double)(timeTaken)/CLOCKS_PER_SEC
 	return string;
 }
 
