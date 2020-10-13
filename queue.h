@@ -10,21 +10,16 @@
 #define QUEUE
 #include <semaphore.h>
 
+//Defining the queue elements
 typedef struct{
 	char **strings;
-	int numElems;
-	int capacity;
-	int head;
-	int tail;
-	int enqueueCount;
-	int dequeueCount;
-	int enqueueTime;
-	int dequeueTime;
-	sem_t eqReady;
-	sem_t dqReady;
-	sem_t mutex;
+	int numElems, capacity, head, tail;
+	int enqueueCount, dequeueCount;
+	int enqueueTime, dequeueTime;
+	sem_t eqReady, dqReady, mutex;
 }Queue;	
 
+// Defining the functions for creating a queue and adding and removing data from it.
 Queue *CreateStringQueue(int qsize);
 
 void EnqueueString(Queue *q, char *string);
