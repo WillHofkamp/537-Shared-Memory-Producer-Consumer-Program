@@ -16,161 +16,153 @@
 #include <errno.h>
 #include "thread.h"
 
-const int BUFFER_SIZE = 1024;
+extern const int MAX_LINE_LEN;
+extern const int QUEUE_SIZE;
+
+//This function returns a line if it is lesser than buffer size
+//It takes care of what is returned when the EOF is encountered
+parseLine *read_line(int buff_size)
+{
+    parseLine *lineVal = (parseLine *) malloc(sizeof(parseLine));
+    char *line = (char *) malloc(sizeof(char) * buff_size);
+    if (errno == ENOMEM) {
+        fprintf(stderr, "No enough memory for malloc\n");
+        line[0] = '\0';
+        lineVal->readString = line;
+        lineVal->foundEof = 1;
+        lineVal->bufferExceed = 0;
+        return lineVal;
+    }
+    char c = '\0';
+    for (int i = 0; i < buff_size; i++) {
+        c = getchar();
+        if (c != EOF && c != '\n') {
+            line[i] = c;
+        } else if (c == '\n') {
+            line[i] = '\0';
+            lineVal->readString = line;
+            lineVal->foundEof = 0;
+            lineVal->bufferExceed = 0;
+            return lineVal;
+        } else {
+            line[i] = '\0';
+            lineVal->readString = line;
+            lineVal->foundEof = 1;
+            lineVal->bufferExceed = 0;
+            return lineVal;
+        }
+    }
+    lineVal->bufferExceed = 1;
+    line[buff_size - 1] = '\0';
+    lineVal->readString = line;
+    lineVal->foundEof = 0;
+
+    // Flush the rest of the line
+    while ((c = getchar()) != '\n' && c != EOF);
+    if (c == EOF)
+        lineVal->foundEof = 1;
+
+    return lineVal;
+}
 
 //Reader thread reads a line from stdio and enqueues it into Q1 for Munch1 to access
-void *Read(void *queues)
+void *read(void *out_queue)
 {
-    Queue **queue = (Queue **) queues;
-	char c = '\0';
-	int newLineFlag = 1;
-	int ignoreLine = 0;
-	int charIndex = 0;
-	char *inputString = NULL;
-	char* TERMINATE = "EOFNULLchar";
-	
-	// iterates through stdin until file end is reached
-	while( (c = getc(stdin)) != EOF){
+    size_t max_line_len = MAX_LINE_LEN;
 
-		// allocates space for new char* for each new line
-		if(newLineFlag){
-			inputString = (char *) calloc(BUFFER_SIZE, sizeof(char));
-			if(inputString == NULL){
-				printf("Error: Unable malloc space for input string.\n");
-				return NULL;
-			}
-			// reset both flags
-			newLineFlag = 0;
-			ignoreLine = 0;
-		}
+    char *store = NULL;
+    do {
+        parseLine *line_struct = read_line(max_line_len);
+        if (line_struct->bufferExceed == 1) {
+	    //If line size exceeds buffer size, then line is discarded and message is printed to stderr
+            fprintf(stderr, "Line size exceeds the buffer size %zu\n", max_line_len);
+            continue;
+        }
+        if (line_struct->foundEof == 1) {
+            if (line_struct->readString[0] != '\0') {
+                store = line_struct->readString;
+            }
+            else {
+                break;
+            }
+        }
+        else {
+            store = line_struct->readString;
+        }
+        // printf("Reading at %x: %s\n", line, line);
+        EnqueueString((Queue *) out_queue, line);
+    } while (line != NULL);
 
-		// as long as the char isn't a return (new line), continue
-		if(c != '\n'){
-			if(!ignoreLine){
-				// test that the length so far isn't longer than buffer.
-				if(charIndex < BUFFER_SIZE){
-					inputString[charIndex] = c;
-					charIndex++;
-				}else{
-					fprintf(stderr, "Error: Input string is larger than buffer.\n");
-					// set flag telling program to ignore the rest of this line
-					ignoreLine = 1;
-				}
-			}
-		// adds string to queue
-		}else{
-			charIndex = 0;
-			newLineFlag = 1;
-			if(inputString != NULL){
-				if(!ignoreLine){
-					EnqueueString(queue[0], inputString);
-					inputString = NULL;
-				}else{
-					// this line was ignored to free the space
-					free(inputString);
-					inputString = NULL;
-				}
-			}
-		}
-	}
-	// if there was a string that didn't end with a new line but instead an EOF it wasn't added to the queue
-	if(inputString != NULL && (!ignoreLine)){
-		EnqueueString(queue[0], inputString);
-	}
-
-	// termination string used to communicate to munch1 thread that reader is done
-	EnqueueString(queue[0], TERMINATE);
-	pthread_exit(NULL);
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString((Queue *) out_queue, NULL);
+    pthread_exit(NULL);
+    return NULL;
 }
 
 //Munch1 DequeueStrings string from Q1, processes it and EnqueueStrings the string to Q2
-void *Munch1(void *queues)
+void *munch1(void *queues)
 {
-    Queue **queue = (Queue **) queues;
-	char *string = NULL;
-	char asterisk = '*';
-	char space = ' ';
-	char *ptr = NULL;
-	char* TERMINATE = "EOFNULLchar";
-	
-	// run the thread until we get the the termination key
-	while(1){
-		// prevents the thread from busy waiting
-		string = DequeueString(queue[0]);
-		
-		// test if we've reached the end of the queue
-		if((strcmp(string, TERMINATE)) == 0){
-			break;
-		}
-		
-		// run until no more spaces in string, then break out of this loop
-		while (1){
-			ptr = strchr(string, space);
-			// if ptr is NULL than there are no more spaces in string
-			if(ptr == NULL){
-				break;
-			}else{
-				*(ptr) = asterisk;
-			}
-		}
-		// add the munipulated string onto next queue
-		EnqueueString(queue[1], string);
-	}
-	// termination string used to communicate to munch2 thread that munch1 is done
-	EnqueueString(queue[1], TERMINATE);
-	pthread_exit(NULL);
+    char *string;
+    do {
+        string = DequeueString(((threadDto *)queues)->input);
+        
+        if (string == NULL)
+            break;
+
+	//Replace every space with a *
+        for (int i=0; string[i] != '\0'; i++) {
+            if (string[i] == ' ')
+                string[i] = '*';
+        }
+
+        EnqueueString(((threadDto *)queues)->output, string);
+    } while (string != "EOFNULLchar");
+
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString(((threadDto *)queues)->output, NULL);
+    pthread_exit(NULL);
+
+    return NULL;
 }
 
 //Munch2 DequeueStrings string from Q2, processes it and EnqueueStrings the string to Q3
-void *Munch2(void *queues)
+void *munch2(void *queues)
 {
-    Queue **queue = (Queue **) queues;
-	char *string = NULL;
-	int charIndex = 0;
-	char* TERMINATE = "EOFNULLchar";
-	
-	// run the thread until we get the the termination key
-	while(1){
-		// prevents the thread from busy waiting
-		string = DequeueString(queue[1]);
-		
-		// test if we've reached the end of the queue
-		if((strcmp(string, TERMINATE)) == 0){
-			break;
-		}
+    char *string;
+    do {
+        string = DequeueString(((threadDto *)queues)->input);
+        
+        if (string == NULL)
+            break;
 
-		charIndex = 0;
-		// loop through the entire string and change the lower case chars to UPPER
-		while(string[charIndex] != '\0'){
-			if(islower(string[charIndex])) {
-				string[charIndex] = toupper(string[charIndex]);
-			}
-			charIndex++;
-		}
-		EnqueueString(queue[2], string);
-	}
-	// termination string used to communicate to writer thread that munch2 is done
-	EnqueueString(queue[2], TERMINATE);
-	pthread_exit(NULL);
+        // printf("Before Munch2: %s\n", string);
+
+        for (int i=0; string[i] != '\0'; i++) {
+            if (islower(string[i]))
+                string[i] = toupper(string[i]);
+        }
+
+        // printf("After Munch2: %s\n", string);
+
+        EnqueueString(((threadDto *)queues)->output, string);
+    } while (string != "EOFNULLchar");
+
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString(((threadDto *)queues)->output, NULL);
+    pthread_exit(NULL);
+
+    return NULL;
 }
 
-void *Write(void *queues)
+void *write(void *in_queue)
 {
-    Queue **queue = (Queue **) queues;
-	char *line = NULL;
-	char* TERMINATE = "EOFNULLchar";
-	
-	// run the thread until we get the the termination key
-	while(1){
-		// prevents the thread from busy waiting
-		line = DequeueString(queue[2]);
-		
-		// test if we've reached the end of the queue
-		if((strcmp(line, TERMINATE)) == 0){
-			break;
-		}
-		// print the line to standard output
-		printf("%s\n", line);
-	}
-	pthread_exit(NULL);
+    char *string = DequeueString((Queue *)in_queue);
+    while (string != NULL && strcmp(string, "EOFNULLchar") != 0) {
+        fprintf(stdout, "%s\n", string);
+        free(string);
+        string = DequeueString((Queue *)in_queue);
+    }
+    fprintf(stdout, "\nTotal number of processed strings: %d\n", ((Queue *)in_queue)->enqueueCount - 1);
+    pthread_exit(NULL);
+    return NULL;
 }
