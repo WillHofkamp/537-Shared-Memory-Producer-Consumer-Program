@@ -10,19 +10,31 @@
 
 #ifndef QUEUE_SERVICE
 #define QUEUE_SERVICE
-typedef struct Queue
-{
-    int head, tail, size, numElem, eqCount, dqCount, eqBlockNum, dqBlockNum;
+
+typedef struct {
+    int size;
+    int numElem;
+    int head; 
+    int tail;
+    int enqueueCount;
+    int dequeueCount;
+    int enqueueTime;
+    int dequeueTime;
+    int eqBlockNum;
+    int dqBlockNum;
     char **string;
-    sem_t mutex, full, empty, stat_block_mutex;
+    sem_t mutex; 
+    sem_t full;
+    sem_t empty; 
+    sem_t stat_block_mutex;
 } Queue;
 
-Queue *Create(int size);
+Queue *CreateStringQueue(int size);
 
-void Enqueue(Queue *q, char *string);
+void EnqueueString(Queue *q, char *string);
 
-char * Dequeue(Queue *q);
+char * DequeueString(Queue *q);
 
-void Print(Queue *q);
+void PrintQueueStats(Queue *q);
 
 #endif

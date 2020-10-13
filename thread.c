@@ -90,21 +90,21 @@ void *Read(void *out_queue)
             line = line_struct->read_str;
         }
         // printf("Reading at %x: %s\n", line, line);
-        Enqueue((Queue *) out_queue, line);
+        EnqueueString((Queue *) out_queue, line);
     } while (line != NULL);
 
-    // Enqueue NULL as a terminating condition for next queue
-    Enqueue((Queue *) out_queue, NULL);
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString((Queue *) out_queue, NULL);
     pthread_exit(NULL);
     return NULL;
 }
 
-//Munch1 dequeues string from Q1, processes it and enqueues the string to Q2
+//Munch1 DequeueStrings string from Q1, processes it and EnqueueStrings the string to Q2
 void *Munch1(void *queues)
 {
     char *string;
     do {
-        string = Dequeue(((threadDto *)queues)->input);
+        string = DequeueString(((threadDto *)queues)->input);
         
         if (string == NULL)
             break;
@@ -115,22 +115,22 @@ void *Munch1(void *queues)
                 string[i] = '*';
         }
 
-        Enqueue(((threadDto *)queues)->output, string);
+        EnqueueString(((threadDto *)queues)->output, string);
     } while (string != NULL);
 
-    // Enqueue NULL as a terminating condition for next queue
-    Enqueue(((threadDto *)queues)->output, NULL);
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString(((threadDto *)queues)->output, NULL);
     pthread_exit(NULL);
 
     return NULL;
 }
 
-//Munch2 dequeues string from Q2, processes it and enqueues the string to Q3
+//Munch2 DequeueStrings string from Q2, processes it and EnqueueStrings the string to Q3
 void *Munch2(void *queues)
 {
     char *string;
     do {
-        string = Dequeue(((threadDto *)queues)->input);
+        string = DequeueString(((threadDto *)queues)->input);
         
         if (string == NULL)
             break;
@@ -144,11 +144,11 @@ void *Munch2(void *queues)
 
         // printf("After Munch2: %s\n", string);
 
-        Enqueue(((threadDto *)queues)->output, string);
+        EnqueueString(((threadDto *)queues)->output, string);
     } while (string != NULL);
 
-    // Enqueue NULL as a terminating condition for next queue
-    Enqueue(((threadDto *)queues)->output, NULL);
+    // EnqueueString NULL as a terminating condition for next queue
+    EnqueueString(((threadDto *)queues)->output, NULL);
     pthread_exit(NULL);
 
     return NULL;
@@ -156,11 +156,11 @@ void *Munch2(void *queues)
 
 void *Write(void *in_queue)
 {
-    char *string = Dequeue((Queue *)in_queue);
+    char *string = DequeueString((Queue *)in_queue);
     while (string != NULL) {
         fprintf(stdout, "%s\n", string);
         free(string);
-        string = Dequeue((Queue *)in_queue);
+        string = DequeueString((Queue *)in_queue);
     }
     fprintf(stdout, "\nTotal number of processed strings: %d\n", ((Queue *)in_queue)->enqueueCount - 1);
     pthread_exit(NULL);

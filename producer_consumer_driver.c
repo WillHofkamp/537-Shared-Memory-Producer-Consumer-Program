@@ -26,14 +26,9 @@ const int QUEUE_SIZE = 10;
 int main()
 {
     pthread_t readerThread, munch1Thread, munch2Thread, writerThread;
-    Queue *queue1, *queue2, *queue3;
-    //queue1 is the queue between reader and munch1
-    queue1 = Create(QUEUE_SIZE);
-    //queue2 is the queue between munch1 and munch2
-    queue2 = Create(QUEUE_SIZE);
-    //queue3 is the queue between munch2 and writer
-    queue3 = Create(QUEUE_SIZE);
-
+    Queue *queue1 = CreateStringQueue(QUEUE_SIZE); //reader to munch1
+    Queue *queue2 = CreateStringQueue(QUEUE_SIZE); //munch1 to munch2
+    Queue *queue3 = CreateStringQueue(QUEUE_SIZE); //munch2 to writer
     int error_num = 0;
 
     threadDto *munch1Dto = (threadDto *) malloc(sizeof(threadDto)), 
@@ -84,11 +79,11 @@ int main()
     //Printing the queue statistics to stderr
     fprintf(stderr, "\n\nQueue Statistics:\n");
     fprintf(stderr, "\nQueue 1 (Reader to Munch1):\n");
-    Print(queue1);
+    PrintQueueStats(queue1);
     fprintf(stderr, "\nQueue 2 (Munch1 to Munch2):\n");
-    Print(queue2);
+    PrintQueueStats(queue2);
     fprintf(stderr, "\nQueue 3 (Munch2 to Writer):\n");
-    Print(queue3);
+    PrintQueueStats(queue3);
 
     return 0;
 }

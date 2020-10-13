@@ -20,7 +20,7 @@ extern const int MAX_LINE_LEN;
 extern const int QUEUE_SIZE;
 
 //This method creates a Queue with no of elements = size
-Queue *Create(int size) 
+Queue *CreateStringQueue(int size) 
 { 
     struct Queue* queue = (struct Queue*) malloc(sizeof(struct Queue));
     if (errno == ENOMEM) {
@@ -68,7 +68,7 @@ Queue *Create(int size)
 //It waits until there is space for a string to be enqueued
 //Once enqueued, it informs that there is a string that can be dequeued
 //Enqueue count and enqueue block count are incremented here
-void Enqueue(Queue *q, char *string) 
+void EnqueueString(Queue *q, char *string) 
 {
     sem_wait(&(q->stat_block_mutex));
     if (q->size == q->no_of_elements) {
@@ -92,7 +92,7 @@ void Enqueue(Queue *q, char *string)
 //It waits until there is a string that can be dequeued
 //Once dequeued, it informs that there is space for an enqueue to happen
 //Dequeue count and dequeue block count are incremented here
-char * Dequeue(Queue *q) 
+char * DequeueString(Queue *q) 
 {
     sem_wait(&(q->stat_block_mutex));
     if (q->no_of_elements==0){
@@ -114,7 +114,6 @@ char * Dequeue(Queue *q)
 }
 
 //This method prints the queue statistics to stderr
-void Print(Queue *q)
-{
+void PrintQueueStats(Queue *q) {
 	fprintf(stderr, "1. Enqueue Count: %d\n2. Dequeue Count: %d\n3. Enqueue Block Count: %d\n4. Dequeue Block Count: %d\n", q->enqueueCount - 1, q->dequeueCount - 1, q->enqueueBlockCount, q->dequeueBlockCount);
 }

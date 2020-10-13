@@ -11,8 +11,7 @@
 //This structure is used to pass the Queues as arguments to the threads
 #ifndef THREAD_SERVICE
 #define THREAD_SERVICE 
-typedef struct threadDto
-{
+typedef struct {
     Queue *input;
     Queue *output;
 } threadDto;
