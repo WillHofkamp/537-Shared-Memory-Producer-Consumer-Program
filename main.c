@@ -25,52 +25,51 @@ const int QUEUE_SIZE = 10;
 // @returns N/A
 int main(){
 
-	// creating the threads
+	// create each queue
+	Queue *readerToMunch1Queue = MakeQueue(QUEUE_SIZE);
+	if (readerToMunch1Queue == NULL){
+		fprintf(stderr, "Error unable to create queue\n");
+		return -1;
+	}
+	Queue *munch1ToMunch2Queue = MakeQueue(QUEUE_SIZE);
+	if (munch1ToMunch2Queue == NULL){
+		fprintf(stderr, "Error unable to create queue\n");
+		return -1;
+	}
+	Queue *munch2ToWriterQueue = MakeQueue(QUEUE_SIZE);
+	if (munch2ToWriterQueue == NULL){
+		fprintf(stderr, "Error unable to create queue\n");
+		return -1;
+	}
+	
+	void *queues[3];
+	queues[0] = readerToMunch1Queue;
+	queues[1] = munch1ToMunch2Queue;
+	queues[2] = munch2ToWriterQueue;
+	
+	// create the threads
 	pthread_t readerThread;
 	pthread_t munch1Thread;
 	pthread_t munch2Thread;
 	pthread_t writerThread;
 	
-
-	// creating the queues
-	Queue *readerQueue = CreateStringQueue(QUEUE_SIZE);
-	if (readerQueue == NULL){
-		fprintf(stderr, "Error unable to create queue\n");
-		return -1;
-	}
-	Queue *munch1Queue = CreateStringQueue(QUEUE_SIZE);
-	if (munch1Queue == NULL){
-		fprintf(stderr, "Error unable to create queue\n");
-		return -1;
-	}
-	Queue *munch2Queue = CreateStringQueue(QUEUE_SIZE);
-	if (munch2Queue == NULL){
-		fprintf(stderr, "Error unable to create queue\n");
-		return -1;
-	}
-	
-	void *queueHolder[3];
-	queueHolder[0] = readerQueue;
-	queueHolder[1] = munch1Queue;
-	queueHolder[2] = munch2Queue;
-
 	// creates the thread for each module
-	if(pthread_create(&readerThread, NULL, reader, queueHolder)){
+	if(pthread_create(&readerThread, NULL, readInStrings, queues)){
 		fprintf(stderr, "Error creating Reader thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch1Thread, NULL, munch1, queueHolder)){
+	if(pthread_create(&munch1Thread, NULL, munch1Strings, queues)){
 		fprintf(stderr, "Error creating Munch1 thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&munch2Thread, NULL, munch2, queueHolder)){
+	if(pthread_create(&munch2Thread, NULL, munch2Strings, queues)){
 		fprintf(stderr, "Error creating Munch2 thread.\n");
 		return -1;
 	}
 	
-	if(pthread_create(&writerThread, NULL, writer, queueHolder)){
+	if(pthread_create(&writerThread, NULL, writeOutStrings, queues)){
 		fprintf(stderr, "Error creating Writer thread.\n");
 		return -1;
 	}
@@ -98,11 +97,11 @@ int main(){
 
 	// TEST QUEUE
 	fprintf(stderr, "\nQUEUE 1 STATS\n");
-	PrintQueueStats(queueHolder[0]);
+	PrintQueueStats(queues[0]);
 	fprintf(stderr, "\nQUEUE 2 STATS\n");
-	PrintQueueStats(queueHolder[1]);
+	PrintQueueStats(queues[1]);
 	fprintf(stderr, "\nQUEUE 3 STATS\n");
-	PrintQueueStats(queueHolder[2]);
+	PrintQueueStats(queues[2]);
 
 	// destroy the semaphores
 	for(int i = 0; i < QUEUE_SIZE; i++){

@@ -1,131 +1,98 @@
+////////////////////////////////////////////////////////////////////////////////
+// Main File: main.c
+// This File: queue.c
+// This File Description: This is the queue
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
+////////////////////////////////////////////////////////////////////////////////
+
 #include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <pthread.h>
 #include <semaphore.h>
-#include <errno.h>
-#include "producer_consumer_header.h"
 #include "queue.h"
 
+// This method creates a queue to the size
+// specification passed in, and initializes
+// the statistics that will be tracked 
+// thoughout the queue's use.
+// 
+// @param size
+// @stringQueue
+Queue *MakeQueue(int qsize){
 
-extern const int MAX_LINE_LEN;
-extern const int QUEUE_SIZE;
-
-//This method creates a Queue with no of elements = size
-Queue *CreateStringQueue(int size) 
-{ 
-    struct Queue* queue = (struct Queue*) malloc(sizeof(struct Queue));
-    if (errno == ENOMEM) {
-        fprintf(stderr, "Not enough memory for malloc\n");
-        free(queue);
-        return NULL;
-    }
+	Queue *stringQueue = (Queue *) malloc(sizeof(Queue));
+	if(stringQueue == NULL){
+		fprintf(stderr, "Error unable to malloc queue\n");
+		return NULL;
+	}
+	stringQueue->strings = (char**) malloc(sizeof(char*) * size);
+	if(stringQueue->strings == NULL){
+		fprintf(stderr, "Error unable to malloc queue\n");
+		free(stringQueue);
+		return NULL;
+	}
+	stringQueue->maxSize = qsize;
+	stringQueue->size = 0;
+	stringQueue->head = 0;
+	stringQueue->tail = 0;
+	stringQueue->enqueues = 0;
+	stringQueue->dequeues = 0;
+	stringQueue->eqBlocks = 0;
+	stringQueue->dqBlocks = 0;
+	sem_init(&stringQueue->eqReady, 0, 0);
+	sem_init(&stringQueue->dqReady, 0, 10);
+	sem_init(&stringQueue->mutex, 0, 1);
 	
-	queue->string = (char **) malloc(sizeof(char *) * size);
-    if (errno == ENOMEM) {
-        fprintf(stderr, "Not enough memory for malloc\n");
-        free(queue);
-        return NULL;
-    }
-	for (int i = 0; i < size; i++){    
-	    queue->string[i] = NULL;
-    }
-
-    queue->capacity = size; 
-    queue->numElements = 0;
-    queue->head = 0;  
-    queue->tail = 0;
-    queue->enqueueCount = 0;
-    queue->dequeueCount = 0;
-    queue->enqueueBlockCount = 0;
-    queue->dequeueBlockCount = 0;
-    sem_init(&queue->empty, 0, 10);
-	sem_init(&queue->full, 0, 0);
-	sem_init(&queue->mutex, 0, 1);
-   
-
-
-    // if sem_init() returns -1, then there was an error in initializing sem
-//     if (sem_init(&(queue->stat_block_mutex), 0, 1) == -1 || sem_init(&(queue->mutex), 0, 1) == -1 || 
-//         sem_init(&(queue->full), 0, 0) == -1 || sem_init(&(queue->empty), 0, size) == -1) {
-//         fprintf(stderr, "Error in initializing the semaphore\n");
-//         if (errno == EINVAL) {
-//             fprintf(stderr, "Semaphore value exceeds SEM_VALUE_MAX\n");
-//         }
-//         else if (errno == ENOSYS) {
-//             fprintf(stderr, "pshared is nonzero, but the system does not support process-shared semaphores\n");
-//         }
-//         free(queue);
-//         return NULL;
-//     }
-    return queue;
+	return stringQueue;
 }
 
-//This method enqueues a string into the respective Queue
-//It waits until there is space for a string to be enqueued
-//Once enqueued, it informs that there is a string that can be dequeued
-//Enqueue count and enqueue block count are incremented here
-void EnqueueString(Queue *q, char *string) 
-{
-    //-------sem_wait(&(q->stat_block_mutex));
-    if (q->capacity == q->numElements) {
-	    q->enqueueBlockCount++;
-    }
-    //----sem_post(&(q->stat_block_mutex));
-
-    sem_wait(&(q->empty));
-    sem_wait(&(q->mutex));
-    if(q->tail == q->capacity){
-		q->tail = 0;
+// enqueue strings onto the string as well as update the statistics
+void Enqueue(Queue *queue, char *string){
+	if(queue->size == queue->maxSize){
+		queue->eqBlocks++;
+		// BLOCK until dequeue is made!
 	}
-
-    q->string[q->tail] = string; 
-    q->tail = (q->tail + 1) % q->size;
-    q->numElements++;
-    q->enqueueCount++;
-
-    sem_post(&q->mutex);
-    sem_post(&q->full);
-}
-
-
-//This method dequeues a string into the respective Queue
-//It waits until there is a string that can be dequeued
-//Once dequeued, it informs that there is space for an enqueue to happen
-//Dequeue count and dequeue block count are incremented here
-char * DequeueString(Queue *q) 
-{
-    //-----sem_wait(&(q->stat_block_mutex));
-    if (q->numElements==0){
-	    q->dequeueBlockCount++;
-    }
-    //----sem_post(&(q->stat_block_mutex));
-
-    sem_wait(&q->full);
-    sem_wait(&q->mutex);
-    if(q->head == q->capacity){
-		q->head = 0;
+	sem_wait(&queue->dqReady);
+	sem_wait(&queue->mutex);
+	if(queue->tail == queue->maxSize){
+		queue->tail = 0;
 	}
-
-    char* queue_string = q->string[q->head];
-    q->head = (q->head + 1) % q->size; 
-    q->numElements--;
-    q->dequeueCount++;
-     
-    sem_post(&q->mutex);
-    sem_post(&q->empty);
-    return queue_string;
+	queue->strings[queue->tail] = string;
+	queue->tail++;
+	queue->size++;
+	queue->enqueues++;
+	sem_post(&queue->mutex);
+	//unlock the blocked dequeue
+	sem_post(&queue->eqReady);
 }
 
-//This method prints the queue statistics to stderr
-void PrintQueueStats(Queue *q)
-{
-	//-----fprintf(stderr, "1. Enqueue Count: %d\n2. Dequeue Count: %d\n3. Enqueue Block Count: %d\n4. Dequeue Block Count: %d\n", q->enqueueCount - 1, q->dequeueCount - 1, q->enqueueBlockCount, q->dequeueBlockCount);
+// dequeue strings onto the string as well as update the statistics
+char * Dequeue(Queue *queue){
+	if(queue->size == 0){
+		queue->dqBlocks++;
+		// BLOCK until enqueue is made!
+	}
+	sem_wait(&queue->eqReady);
+	sem_wait(&queue->mutex);
+	// wrap the head around
+	if(queue->head == queue->maxSize){
+		queue->head = 0;
+	}
+	char *string = queue->strings[queue->head];
+	queue->head++;
+	queue->size--;
+	queue->dequeues++;
+	sem_post(&queue->mutex);
+	//unlock the blocked enqueue
+	sem_post(&queue->dqReady);
+	return string;
+}
 
-	fprintf(stderr, "enqueuecount = %d\n", q->enqueueCount)
-	fprintf(stderr, "dequeuecount = %d\n", q->dequeueCount)
-	fprintf(stderr, "enqueueBlockcount = %d\n", q->enqueueBlockCount)
-	fprintf(stderr, "enqueueBlockcount = %d\n", q->enqueueBlockCount)
+// print all stats related to the queue
+void PrintStats(Queue *queue){
+	fprintf(stderr, "enqueues = %d\n", queue->enqueues);
+	fprintf(stderr, "dequeues = %d\n", queue->dequeues);
+	fprintf(stderr, "eqBlocks = %d\n", queue->eqBlocks);
+	fprintf(stderr, "dqBlocks = %d\n", queue->dqBlocks);
 }

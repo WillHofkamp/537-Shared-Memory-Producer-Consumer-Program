@@ -1,36 +1,36 @@
+////////////////////////////////////////////////////////////////////////////////
+// Main File: main.c
+// This File: queue.h
+// This File Description: This is the queue interface that also sets up the queue struct
+// Author:           William Hofkamp, Pranet Gowni
+// Email:            hofkamp@wisc.edu, gowni@wisc.edu
+// CS Login:         hofkamp, pranet
+////////////////////////////////////////////////////////////////////////////////
+#ifndef QUEUE
+#define QUEUE
 #include <semaphore.h>
 
+typedef struct{
+	char **strings;
+	int maxSize;
+	int size;
+	int head;
+	int tail;
+	int enqueues;
+	int dequeues;
+	int eqBlocks;
+	int dqBlocks;
+	sem_t eqReady;
+	sem_t dqReady;
+	sem_t mutex;
+}Queue;	
 
-//Queue definition
-#ifndef STRUCT_STAT_STATM_CMDLINE
-#define STRUCT_STAT_STATM_CMDLINE
-typedef struct Queue
-{
-    int head;
-    int tail;
-    int capacity;
-    int numElements;
-    int enqueueCount;
-    int dequeueCount;
-    int enqueueBlockCount;
-    int dequeueBlockCount;
-    char **string;
-    sem_t mutex;
-    sem_t full;
-    sem_t empty;
-    sem_t stat_block_mutex;
-} Queue;
+Queue *MakeQueue(int qsize);
+
+void Enqueue(Queue *q, char *string);
+
+char * Dequeue(Queue *q);
+
+void PrintStats(Queue *q);
+
 #endif
-
-//Function definitions for the Queue methods
-Queue *CreateStringQueue(int size);
-void EnqueueString(Queue *q, char *string);
-char * DequeueString(Queue *q);
-void PrintQueueStats(Queue *q);
-
-
-//Function definitions for the Threads
-void *reader(void *string);
-void *munch1(void *queues);
-void *munch2(void *queues);
-void *writer(void *queue_data);
