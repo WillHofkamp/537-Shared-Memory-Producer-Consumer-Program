@@ -11,20 +11,14 @@ WARNING_FLAGS = -Wall -Wextra
 EXE = prodcomm
 SCAN_BUILD_DIR = scan-build-out
 
-all: main.o queue.o reader.o munch1.o munch2.o writer.o
-	$(CC) -o $(EXE) main.o queue.o reader.o munch1.o munch2.o writer.o -lpthread
-main.o: main.c queue.h reader.h munch1.h munch2.h writer.h
-	$(CC) $(WARNING_FLAGS) -c main.c -lpthread
+all: prodcom.o thread.o queue.o
+	$(CC) -o $(EXE) prodcom.o thread.o queue.o -lpthread
+prodcom.o: prodcom.c queue.h thread.h
+	$(CC) $(WARNING_FLAGS) -c prodcom.c -lpthread
+thread.o: thread.c thread.h queue.h
+	$(CC) $(WARNING_FLAGS) -c thread.c
 quote.o: queue.c queue.h
 	$(CC) $(WARNING_FLAGS) -c queue.c
-reader.o: reader.c reader.h
-	$(CC) $(WARNING_FLAGS) -c reader.c
-munch1.o: munch1.c munch1.h
-	$(CC) $(WARNING_FLAGS) -c munch1.c
-munch2.o: munch2.c munch2.h
-	$(CC) $(WARNING_FLAGS) -c munch2.c
-writer.o: writer.c writer.h
-	$(CC) $(WARNING_FLAGS) -c writer.c
 clean:
 	rm -f $(EXE) *.o
 	rm -rf $(SCAN_BUILD_DIR)

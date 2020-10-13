@@ -11,10 +11,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "queue.h"
-#include "reader.h"
-#include "munch1.h"
-#include "munch2.h"
-#include "writer.h"
+#include "thread.h"
 
 const int QUEUE_SIZE = 10;
 
