@@ -14,8 +14,7 @@
 #include "queue.h"
 
 // Class to create a Queue of the given size
-// @param size
-// @stringQueue
+// @param qsize
 Queue *CreateStringQueue(int qsize){
 
 	Queue *queue = (Queue *) malloc(sizeof(Queue));
