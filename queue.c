@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <semaphore.h>
+#include <time.h>
 #include "queue.h"
 
 // This method creates a queue to the size
@@ -21,85 +22,86 @@
 // @stringQueue
 Queue *CreateStringQueue(int qsize){
 
-	Queue *stringQueue = (Queue *) malloc(sizeof(Queue));
-	if(stringQueue == NULL){
+	Queue *queue = (Queue *) malloc(sizeof(Queue));
+	if(queue == NULL){
 		fprintf(stderr, "Error unable to malloc queue\n");
 		return NULL;
 	}
-	stringQueue->strings = (char**) malloc(sizeof(char*) * size);
-	if(stringQueue->strings == NULL){
+
+	queue->strings = (char**) malloc(sizeof(char*) * size);
+	if(queue->strings == NULL){
 		fprintf(stderr, "Error unable to malloc queue\n");
-		free(stringQueue);
+		free(queue);
 		return NULL;
 	}
-	stringQueue->capacity = qsize;
-	stringQueue->numElems = 0;
-	stringQueue->head = 0;
-	stringQueue->tail = 0;
-	stringQueue->enqueueCount = 0;
-	stringQueue->dequeueCount = 0;
-	stringQueue->enqueueTime = 0;
-	stringQueue->dequeueTime = 0;
-	sem_init(&stringQueue->eqReady, 0, 0);
-	sem_init(&stringQueue->dqReady, 0, 10);
-	sem_init(&stringQueue->mutex, 0, 1);
+	queue->capacity = qsize;
+	queue->numElems = 0;
+	queue->head = 0;
+	queue->tail = 0;
+	queue->enqueueCount = 0;
+	queue->dequeueCount = 0;
+	queue->enqueueTime = 0;
+	queue->dequeueTime = 0;
+	sem_init(&queue->eqReady, 0, 0);
+	sem_init(&queue->dqReady, 0, 10);
+	sem_init(&queue->mutex, 0, 1);
 	
-	return stringQueue;
+	return queue;
 }
 
-// enqueue strings onto the string as well as update the statistics
-void EnqueueString(Queue *queue, char *string){
+// Dequeue a string into the respective queue
+void EnqueueString(Queue *q, char *string){
 	clock_t timeStart;
 	clock_t timeEnd;
 	clock_t timeTaken;
-	timeStart = clock()
+	timeStart = clock();
     
-    if(queue->numElems == queue->capacity){
-		queue->enqueueTime++;
+    if(q->numElems == q->capacity){
+		q->enqueueBlockCount++;
 		// BLOCK until dequeue is made!
 	}
-	sem_wait(&queue->dqReady);
-	sem_wait(&queue->mutex);
-	if(queue->tail == queue->capacity){
-		queue->tail = 0;
+	sem_wait(&q->dqReady);
+	sem_wait(&q->mutex);
+	if(q->tail == q->capacity){
+		q->tail = 0;
 	}
-	queue->strings[queue->tail] = string;
-	queue->tail++;
-	queue->numElems++;
-	queue->enqueueCount++;
-	sem_post(&queue->mutex);
+	q->strings[q->tail] = string;
+	q->tail++;
+	q->numElems++;
+	q->enqueueCount++;
+	sem_post(&q->mutex);
 	//unlock the blocked dequeue
-	sem_post(&queue->eqReady);
+	sem_post(&q->eqReady);
 
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
 	q->dequeueTime = double(timeTaken)/CLOCKS_PER_SEC
 }
 
-// dequeue strings onto the string as well as update the statistics
-char * DequeueString(Queue *queue){
+// Dequeue a string into the respective queue
+char * DequeueString(Queue *q){
 	clock_t timeStart;
 	clock_t timeEnd;
 	clock_t timeTaken;
-	timeStart = clock()
+	timeStart = clock();
 
-    if(queue->numElems == 0){
-		queue->dequeueTime++;
+    if(q->numElems == 0){
+		q->dequeueTime++;
 		// BLOCK until enqueue is made!
 	}
-	sem_wait(&queue->eqReady);
-	sem_wait(&queue->mutex);
+	sem_wait(&q->eqReady);
+	sem_wait(&q->mutex);
 	// wrap the head around
-	if(queue->head == queue->capacity){
-		queue->head = 0;
+	if(q->head == q->capacity){
+		q->head = 0;
 	}
-	char *string = queue->strings[queue->head];
-	queue->head++;
-	queue->size--;
-	queue->dequeueCount++;
-	sem_post(&queue->mutex);
+	char *string = q->strings[q->head];
+	q->head++;
+	q->size--;
+	q->dequeueCount++;
+	sem_post(&q->mutex);
 	//unlock the blocked enqueue
-	sem_post(&queue->dqReady);
+	sem_post(&q->dqReady);
     
     timeEnd = clock();
 	timeTaken = timeEnd-timeStart;
@@ -107,10 +109,10 @@ char * DequeueString(Queue *queue){
 	return string;
 }
 
-// print all stats related to the queue
-void PrintQueueStats(Queue *queue){
-	fprintf(stderr, "enqueueCount = %d\n", queue->enqueueCount);
-	fprintf(stderr, "dequeueCount = %d\n", queue->dequeueCount);
-	fprintf(stderr, "enqueueTime = %d\n", queue->enqueueTime);
-	fprintf(stderr, "dequeueTime = %d\n", queue->dequeueTime);
+// Printing queue stats
+void PrintQueueStats(Queue *q){
+	fprintf(stderr, "enqueueCount = %d\n", q->enqueueCount);
+	fprintf(stderr, "dequeueCount = %d\n", q->dequeueCount);
+	fprintf(stderr, "enqueueTime = %d\n", q->enqueueTime);
+	fprintf(stderr, "dequeueTime = %d\n", q->dequeueTime);
 }
