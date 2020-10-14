@@ -11,18 +11,6 @@
 
 #ifndef THREAD_SERVICE
 #define THREAD_SERVICE 
-typedef struct {
-    Queue *input;
-    Queue *output;
-} threadDto;
-
-//This structure checks whether eof has been encountered in a line from stdio or
-//if the line has exceeded the buffer size and returns it.
-typedef struct {
-    char *readString;
-    int bufferExceed;
-    int foundEof;
-} parseLine;
 
 void *read(void *out_queue);
 
