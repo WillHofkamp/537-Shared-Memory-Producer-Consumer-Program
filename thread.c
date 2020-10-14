@@ -20,7 +20,7 @@
 #include <errno.h>
 #include "thread.h"
 
-const int BUFFER = 1024;
+const int BUFFER_SIZE = 1024;
 
 //reads a line from the file input and enqueues it into Q1
 void *Read(void *queues)
@@ -37,7 +37,7 @@ void *Read(void *queues)
 
 		//allocate space for each line
 		if(nextLine){
-			stringLine = (char *) malloc(BUFFER, sizeof(char));
+			stringLine = (char *) malloc(BUFFER_SIZE, sizeof(char));
 			if(stringLine == NULL){
 				printf("Error: Unable to malloc space for input string.\n");
 				return NULL;
@@ -50,7 +50,7 @@ void *Read(void *queues)
 		if(c != '\n'){
 			if(!skip){
 				//if the current length is smaller than buffer
-				if(charIndex < BUFFER){
+				if(charIndex < BUFFER_SIZE){
 					stringLine[charIndex] = c;
 					charIndex++;
 				}else{
