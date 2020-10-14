@@ -21,15 +21,14 @@
 #include "thread.h"
 
 const int BUFFER = 1024;
-const char* TERMINATE = "EOFNULLchar";
 
 //reads a line from the file input and enqueues it into Q1
 void *Read(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char c = '\0';
-	int newLineFlag = 1;
-	int ignoreLine = 0;
+	int nextLine = 1;
+	int skip = 0;
 	int charIndex = 0;
 	char *inputString = NULL;
 	
@@ -37,52 +36,52 @@ void *Read(void *queues)
 	while( (c = getc(stdin)) != EOF){
 
 		//allocate space for each line
-		if(newLineFlag){
-			inputString = (char *) calloc(BUFFER, sizeof(char));
-			if(inputString == NULL){
-				printf("Error: Unable malloc space for input string.\n");
+		if(nextLine){
+			stringLine = (char *) malloc(BUFFER, sizeof(char));
+			if(stringLine == NULL){
+				printf("Error: Unable to malloc space for input string.\n");
 				return NULL;
 			}
 			//reset flags after line so each line is checked
-			newLineFlag = 0;
-			ignoreLine = 0;
+			nextLine = 0;
+			skip = 0;
 		}
 
 		if(c != '\n'){
-			if(!ignoreLine){
-				//test that the current length is smaller than buffer
+			if(!skip){
+				//if the current length is smaller than buffer
 				if(charIndex < BUFFER){
-					inputString[charIndex] = c;
+					stringLine[charIndex] = c;
 					charIndex++;
 				}else{
-					fprintf(stderr, "Error: Input string is larger than buffer.\n");
+					fprintf(stderr, "Error: Line size exceeds size of the buffer.\n");
 					//since the line is too big, ignore the rest of it
-					ignoreLine = 1;
+					skip = 1;
 				}
 			}
 		}else{
 			//add string to queue if char is newline
 			charIndex = 0;
-			newLineFlag = 1;
-			if(inputString != NULL){
-				if(!ignoreLine){
-					EnqueueString(queue[0], inputString);
-					inputString = NULL;
+			nextLine = 1;
+			if(stringLine != NULL){
+				if(!skip){
+					EnqueueString(queue[0], stringLine);
+					stringLine = NULL;
 				}else{
 					//if the line was ignored, free it instead of enqueuing it
-					free(inputString);
-					inputString = NULL;
+					free(stringLine);
+					stringLine = NULL;
 				}
 			}
 		}
 	}
 	//check if string wasn't added to queue that has EOF instead of \n for the last char
-	if(inputString != NULL && (!ignoreLine)){
-		EnqueueString(queue[0], inputString);
+	if(stringLine != NULL && (!skip)){
+		EnqueueString(queue[0], stringLine);
 	}
 
 	//termination string signals that Read is done
-	EnqueueString(queue[0], TERMINATE);
+	EnqueueString(queue[0], NULL);
 	pthread_exit(NULL);
 }
 
@@ -91,35 +90,27 @@ void *Munch1(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char *inputString = NULL;
-	char star = '*';
-	char empty = ' ';
-	char *ptr = NULL;
-	
+
 	// run the thread until the end of the file is reached
 	while(1){
 		//prevent busy waiting
 		inputString = DequeueString(queue[0]);
 		
-		//test if we've reached the end of the queue
-		if((strcmp(inputString, TERMINATE)) == 0){
+		if((strcmp(inputString, NULL)) == 0){
 			break;
 		}
 
 		//iterate over each char of string
-		while (1){
-			ptr = strchr(inputString, empty);
-			if(ptr == NULL){
-				//reached end of string
-				break;
-			}else{
-				*(ptr) = star;
+		for(int i = 0; inputString[i] != '\0'; i++){
+			if(inputString[i] == ' '){
+				inputString[i] = '*';
 			}
 		}
 		//enqueue to the next queue
 		EnqueueString(queue[1], inputString);
 	}
 	//termination string signals that Munch1 is done
-	EnqueueString(queue[1], TERMINATE);
+	EnqueueString(queue[1], NULL);
 	pthread_exit(NULL);
 }
 
@@ -128,33 +119,26 @@ void *Munch2(void *queues)
 {
     Queue **queue = (Queue **) queues;
 	char *inputString = NULL;
-	int charIndex = 0;
-	
 	
 	// run the thread until the end of the file is reached
 	while(1){
 		//prevent waiting
 		inputString = DequeueString(queue[1]);
 		
-		//test if we've reached the end of the queue
-		if((strcmp(inputString, TERMINATE)) == 0){
+		if((strcmp(inputString, NULL)) == 0){
 			break;
 		}
 
-		charIndex = 0;
-		//iterate over each char of string
-		while(inputString[charIndex] != '\0'){
-			if(islower(inputString[charIndex])) {
-				//raise any lower case chars to upper case
-				inputString[charIndex] = toupper(inputString[charIndex]);
+		for(int i = 0; inputString[i] != '\0'; i++){
+			if(islower(inputString[i])){
+				string[i] = toupper(string[i]);
 			}
-			charIndex++;
 		}
 		//enqueue to the next queue
 		EnqueueString(queue[2], inputString);
 	}
 	//termination string signals that Munch2 is done
-	EnqueueString(queue[2], TERMINATE);
+	EnqueueString(queue[2], NULL);
 	pthread_exit(NULL);
 }
 
@@ -169,7 +153,7 @@ void *Write(void *queues)
 		line = DequeueString(queue[2]);
 		
 		//test if we've reached the end of the queue
-		if((strcmp(line, TERMINATE)) == 0){
+		if((strcmp(line, NULL)) == 0){
 			break;
 		}
 		// print line in output file
